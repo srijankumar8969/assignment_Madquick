@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+1.Authentication
+Simple email + password based authentication
 
-## Getting Started
+2.Password generator
+password generator -> example ui -> https://passwords-generator.org/
+ Create a generator component:
 
-First, run the development server:
+Length slider (min 8 to max 32)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Checkboxes for uppercase, lowercase, numbers, symbols
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Option to exclude similar chars (like O/0, l/1)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+ Add “Generate” + “Copy” buttons
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+ Implement auto-clear clipboard after 10–20s (setTimeout)
+ /* code can be used
 
-## Learn More
+ const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    alert("Copied to clipboard!");
 
-To learn more about Next.js, take a look at the following resources:
+    // Auto-clear after 15 seconds
+    setTimeout(async () => {
+      await navigator.clipboard.writeText(""); // overwrite clipboard
+      console.log("Clipboard cleared!");
+    }, 15000); // 15000 ms = 15 seconds
+  } catch (err) {
+    console.error("Failed to copy: ", err);
+  }
+};
+*/
+<!-- <button
+  onClick={() => copyToClipboard(generatedPassword)}
+  className="bg-blue-600 text-white px-4 py-2 rounded"
+>
+  Copy Password
+</button> -->
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3.Secure vault password saving ui
+    password generator ui contains an option of save to vault which on click directs to a page  where it can fill the details of the user but the password is auto filled
+    then on saving is directed to a save fault page where it can see all the passwords and other details
+<!-- password saved in the data base should be encrypted using library like cryptojs which can decrypt it when the secure vault is accessed -->
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4.Secure vault
+    Build a dashboard page /vault
 
-## Deploy on Vercel
+    List all items (title, username, etc.)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+    Add a search/filter input (client-side)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+    Integrate edit/delete buttons (modals)
+
+    Add copy password feature with auto-clear
