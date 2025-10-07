@@ -158,4 +158,84 @@ export async function DELETE(req: NextRequest) {
             { status: 500 }
         );
     }
+};
+
+// app/api/vault/route.ts
+export async function PUT(req: NextRequest) {
+    try {
+        await connectDB();
+
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json(
+                { success: false, message: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
+        const body = await req.json();
+        const { id, title, username, password, url, notes } = body;
+
+        // Validate ID
+        if (!id) {
+            return NextResponse.json(
+                { success: false, message: "ID is required" },
+                { status: 400 }
+            );
+        }
+
+        // Validate required fields
+        if (!title || !username || !password) {
+            return NextResponse.json(
+                { success: false, message: "Title, username, and password are required" },
+                { status: 400 }
+            );
+        }
+
+        // Encrypt the password
+        const encryptedPassword = encrypt(password);
+
+        // Update the item
+        const updatedItem = await Vault.findOneAndUpdate(
+            { _id: id, userEmail: session.user.email },
+            {
+                title,
+                username,
+                password: encryptedPassword,
+                url: url || "",
+                notes: notes || "",
+            },
+            { new: true } // Return the updated document
+        );
+
+        if (!updatedItem) {
+            return NextResponse.json(
+                { success: false, message: "Item not found or unauthorized" },
+                { status: 404 }
+            );
+        }
+
+        // Decrypt password for response
+        const itemWithDecryptedPassword = {
+            _id: updatedItem._id.toString(),
+            title: updatedItem.title,
+            username: updatedItem.username,
+            password: decrypt(updatedItem.password),
+            url: updatedItem.url,
+            notes: updatedItem.notes,
+            createdAt: updatedItem.createdAt,
+            updatedAt: updatedItem.updatedAt,
+        };
+
+        return NextResponse.json(
+            { success: true, data: itemWithDecryptedPassword },
+            { status: 200 }
+        );
+    } catch (error: any) {
+        console.error("Vault PUT error:", error);
+        return NextResponse.json(
+            { success: false, message: error.message || "Internal Server Error" },
+            { status: 500 }
+        );
+    }
 }
