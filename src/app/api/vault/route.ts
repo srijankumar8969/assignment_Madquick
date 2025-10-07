@@ -1,37 +1,161 @@
-import { NextResponse } from "next/server";
+// app/api/vault/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/utils/db";
-import Vault  from "@/models/Vault";
-import { authOptions } from "../[...nextauth]/route";
+import Vault from "@/models/Vault";
+import { authOptions } from "../auth/[...nextauth]/route";
 import { getServerSession } from "next-auth";
-export async function POST(req: Request) {
+import CryptoJS from "crypto-js";
+
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "your-secret-key-change-this";
+
+// Encrypt password
+function encrypt(text: string): string {
+    return CryptoJS.AES.encrypt(text, ENCRYPTION_KEY).toString();
+}
+
+// Decrypt password
+function decrypt(ciphertext: string): string {
+    const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
+    return bytes.toString(CryptoJS.enc.Utf8);
+}
+
+export async function POST(req: NextRequest) {
     try {
         await connectDB();
+        console.log("Connected to DB");
+
         const session = await getServerSession(authOptions);
-        if (!session?.user?.email) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        if (!session?.user?.email) {
+            return NextResponse.json(
+                { success: false, message: "Unauthorized" },
+                { status: 401 }
+            );
+        }
 
         const body = await req.json();
+        const { title, username, password, url, notes } = body;
+
+        // Validate required fields
+        if (!title || !username || !password) {
+            return NextResponse.json(
+                { success: false, message: "Title, username, and password are required" },
+                { status: 400 }
+            );
+        }
+
+        // Encrypt the password before saving
+        const encryptedPassword = encrypt(password);
+
         const newItem = await Vault.create({
-        ...body,
-        userEmail: session.user.email,
+            userEmail: session.user.email,
+            title,
+            username,
+            password: encryptedPassword,
+            url: url || "",
+            notes: notes || "",
         });
 
-        return NextResponse.json({ success: true, data: newItem });
+        // Decrypt password for response
+        const itemWithDecryptedPassword = {
+            _id: newItem._id,
+            title: newItem.title,
+            username: newItem.username,
+            password: decrypt(newItem.password),
+            url: newItem.url,
+            notes: newItem.notes,
+            createdAt: newItem.createdAt,
+            updatedAt: newItem.updatedAt,
+        };
+
+        return NextResponse.json(
+            { success: true, data: itemWithDecryptedPassword },
+            { status: 201 }
+        );
     } catch (error) {
         console.error("Vault POST error:", error);
-        return NextResponse.json({ success: false, message: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json(
+            { success: false, message: "Internal Server Error" },
+            { status: 500 }
+        );
     }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await connectDB();
-        const session = await getServerSession(authOptions);
-        if (!session?.user?.email) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-        const items = await Vault.find({ userEmail: session.user.email });
-        return NextResponse.json({ success: true, data: items });
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json(
+                { success: false, message: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
+        const items = await Vault.find({ userEmail: session.user.email }).sort({ createdAt: -1 });
+
+        // Decrypt passwords before sending
+        const decryptedItems = items.map((item) => ({
+            _id: item._id,
+            title: item.title,
+            username: item.username,
+            password: decrypt(item.password),
+            url: item.url,
+            notes: item.notes,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+        }));
+
+        return NextResponse.json({ success: true, data: decryptedItems });
     } catch (error) {
         console.error("Vault GET error:", error);
-        return NextResponse.json({ success: false, message: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json(
+            { success: false, message: "Internal Server Error" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function DELETE(req: NextRequest) {
+    try {
+        await connectDB();
+
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json(
+                { success: false, message: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
+        const { searchParams } = new URL(req.url);
+        const id = searchParams.get("id");
+
+        if (!id) {
+            return NextResponse.json(
+                { success: false, message: "ID is required" },
+                { status: 400 }
+            );
+        }
+
+        const deletedItem = await Vault.findOneAndDelete({
+            _id: id,
+            userEmail: session.user.email,
+        });
+
+        if (!deletedItem) {
+            return NextResponse.json(
+                { success: false, message: "Item not found" },
+                { status: 404 }
+            );
+        }
+
+        return NextResponse.json({ success: true, message: "Item deleted" });
+    } catch (error) {
+        console.error("Vault DELETE error:", error);
+        return NextResponse.json(
+            { success: false, message: "Internal Server Error" },
+            { status: 500 }
+        );
     }
 }

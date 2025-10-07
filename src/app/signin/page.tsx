@@ -27,7 +27,7 @@ export default function SigninPage() {
     alert(res.error);
   } else if (res?.ok) {
     alert("Login successful!");
-    router.push("/vault"); // Add this line to redirect
+    router.push("/passwordvault"); // Add this line to redirect
   }
 };
 
