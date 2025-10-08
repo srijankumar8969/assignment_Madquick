@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
         await connectDB();
 
@@ -231,10 +231,11 @@ export async function PUT(req: NextRequest) {
             { success: true, data: itemWithDecryptedPassword },
             { status: 200 }
         );
-    } catch (error: any) {
+    } catch (error) {
         console.error("Vault PUT error:", error);
+        const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
         return NextResponse.json(
-            { success: false, message: error.message || "Internal Server Error" },
+            { success: false, message: errorMessage },
             { status: 500 }
         );
     }

@@ -9,7 +9,7 @@ import { useTheme } from "next-themes";
 export default function Navbar() {
     const [open, setOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const { theme, setTheme } = useTheme();
 
     useEffect(() => {
