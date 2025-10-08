@@ -38,17 +38,36 @@ export const authOptions: AuthOptions = {
 
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET,
-
+  useSecureCookies: true,
   cookies: {
     sessionToken: {
-      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
+      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: true,
+        domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined
+      }
+    },
+    callbackUrl: {
+      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.callback-url' : 'next-auth.callback-url',
+      options: {
+        sameSite: 'lax',
+        path: '/',
+        secure: true
+      }
+    },
+    csrfToken: {
+      name: process.env.NODE_ENV === 'production' ? '__Host-next-auth.csrf-token' : 'next-auth.csrf-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true
       }
     }
   },
