@@ -4,6 +4,28 @@ import connectToDatabase from "@/utils/db"
 import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
 
+// Extend NextAuth types
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      email: string;
+    }
+  }
+  
+  interface User {
+    id: string;
+    email: string;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string;
+    email: string;
+  }
+}
+
 export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
@@ -29,7 +51,7 @@ export const authOptions: AuthOptions = {
         if (!isPasswordValid) throw new Error("Invalid password");
 
         return {
-          id: user._id.toString(), // Convert MongoDB ObjectId to string
+          id: user._id.toString(),
           email: user.email
         };
       },
@@ -40,48 +62,26 @@ export const authOptions: AuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  
   secret: process.env.NEXTAUTH_SECRET,
-  useSecureCookies: true,
-  cookies: {
-    sessionToken: {
-      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: true,
-        domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined
-      }
-    },
-    callbackUrl: {
-      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.callback-url' : 'next-auth.callback-url',
-      options: {
-        sameSite: 'lax',
-        path: '/',
-        secure: true
-      }
-    },
-    csrfToken: {
-      name: process.env.NODE_ENV === 'production' ? '__Host-next-auth.csrf-token' : 'next-auth.csrf-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: true
-      }
-    }
-  },
 
   pages: {
-    signIn: "/signin", // custom login page
+    signIn: "/signin",
   },
+
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.user = user;
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+      }
       return token;
     },
     async session({ session, token }) {
-      session.user = token.user as { id: string; email: string };
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+      }
       return session;
     },
   },
