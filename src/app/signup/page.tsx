@@ -1,14 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { IUser } from "@/models/User";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState<IUser>({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  const isDark = theme === "dark";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,8 +34,7 @@ export default function SignupPage() {
       });
 
       const data = await res.json();
-      console.log(data);
-      
+
       if (!res.ok) {
         alert(data.message || "Signup failed");
         setLoading(false);
@@ -48,65 +55,76 @@ export default function SignupPage() {
       }
     } catch (error) {
       console.error("Signup error:", error);
-      alert("An unexpected error occurred. Please try again." + {error});
+      alert("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-sm">
-        <h1 className="text-2xl font-semibold text-center mb-6 text-gray-800">
+    <main
+      className={`min-h-screen flex items-center justify-center px-6 transition-colors duration-500 ${
+        isDark
+          ? "bg-gradient-to-br from-black via-gray-950 to-black text-gray-900"
+          : "bg-gradient-to-br from-white via-gray-50 to-white text-gray-100"
+      }`}
+    >
+      <div
+        className={`shadow-lg rounded-2xl p-8 w-full max-w-sm transition-colors duration-500 ${
+          isDark
+            ? "bg-white text-gray-900"
+            : "bg-black text-gray-100"
+        }`}
+      >
+        <h1 className="text-2xl font-semibold text-center mb-6">
           Create Account
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
+            <label className="block text-sm font-medium">Email</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               required
-              className="mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoComplete="false"
+              className="mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-transparent"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
+            <label className="block text-sm font-medium">Password</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               required
-              className="mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              className="mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-transparent"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="w-full bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
           >
             {loading ? "Creating Account..." : "Sign Up"}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-600">
+        <div className="mt-6 text-center text-sm text-gray-500">
           Already have an account?{" "}
-          <a href="/signin" className="text-blue-600 font-medium hover:underline">
+          <a
+            href="/signin"
+            className="text-green-500 font-medium hover:underline"
+          >
             Sign in
           </a>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
+

@@ -1,15 +1,20 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import "./globals.css";
+import { ThemeProvider } from "next-themes";
 import Navbar from "@/components/Navbar";
+import "./globals.css";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <SessionProvider><Navbar />
-        <main className="min-h-screen">{children}</main></SessionProvider>
+        <SessionProvider>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+            <Navbar />
+            <main className="min-h-screen">{children}</main>
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   );
